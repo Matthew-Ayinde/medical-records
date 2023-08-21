@@ -53,6 +53,10 @@ contract Record {
     mapping(address => Doctors) doctors;
     mapping(address => Appointments) appointments;
 
+    // mapping(address => Role) public userRoles;
+
+    // enum Role { None, Patient, Doctor }
+
     mapping(address=>mapping(address=>bool)) isApproved;
     mapping(address => bool) isPatient;
     mapping(address => bool) isDoctor;
@@ -87,6 +91,8 @@ contract Record {
         p.emergencyContact = _emergencyContact;
         p.addr = msg.sender;
         p.date = block.timestamp;
+
+        // userRoles[msg.sender] = Role.Patient;
         
         patientList.push(msg.sender);
         isPatient[msg.sender] = true;
@@ -115,6 +121,14 @@ contract Record {
         p.addr = msg.sender;    
     }
 
+    // function isPatient(address account) public view returns (bool) {
+    //     return userRoles[account] == Role.Patient;
+    // }
+
+    // function isDoctor(address account) public view returns (bool) {
+    //    return userRoles[account] == Role.Doctor;
+    // }
+
     //Retrieve patient details from doctor registration page and store the details into the blockchain
     function setDoctor(string _ic, string _name, string _phone, string _gender, string _dob, string _qualification, string _major) public {
         require(!isDoctor[msg.sender]);
@@ -129,6 +143,8 @@ contract Record {
         d.major = _major;
         d.addr = msg.sender;
         d.date = block.timestamp;
+
+        // userRoles[msg.sender] = Role.Doctor;
         
         doctorList.push(msg.sender);
         isDoctor[msg.sender] = true;

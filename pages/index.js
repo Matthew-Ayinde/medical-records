@@ -1,8 +1,9 @@
 import { createMedia } from '@artsy/fresnel'
 import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { Component, useState } from 'react'
 import { Link } from '../routes';
 import { Router } from '../routes';
+import record from '../ethereum/record';
 import web3 from '../ethereum/web3';
 import {
   Button,
@@ -19,6 +20,7 @@ import {
   Visibility,
   Dropdown
 } from 'semantic-ui-react'
+// import "../styles/global.scss"
 
 const { MediaContextProvider, Media } = createMedia({
   breakpoints: {
@@ -28,46 +30,141 @@ const { MediaContextProvider, Media } = createMedia({
   },
 })
 
-const HomepageHeading = ({ mobile }) => (
-  <Container text>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"></link>
-    <Header
-      as='h1'
-      content='Blockchain Medical Record System'
-      inverted
-      style={{
-        fontSize: mobile ? '2em' : '4em',
-        fontWeight: 'normal',
-        marginBottom: 0,
-        marginTop: mobile ? '1.5em' : '3em',
-        fontFamily:'Georgia',
-      }}
-    />
-    <Header
-      as='h2'
-      content='Ensure that your records are safe and sound'
-      inverted
-      style={{
-        fontSize: mobile ? '1.5em' : '1.7em',
-        fontWeight: 'normal',
-        marginTop: mobile ? '0.5em' : '1.5em',
-      }}
-    />
-    <Button primary size='huge' inverted>
-      <Link route='/dashboard'>
-        <a className='item'>Get Started</a>
-      </Link>
-      <Icon name='right arrow' />
-    </Button>
-  </Container>
-)
+const HomepageHeading = ({ mobile, isWalletNotConnected, setIsWalletNotConnected }) => {
+  // Calls Metamask to connect wallet on clicking Connect Wallet button
+  const connectWallet = async () => {
+
+    // setCheckingUserConnectivity(true);
+
+    try {
+      // const { ethereum } = window
+      const ethereum = 'ethereum' in window ? window.ethereum : undefined;
+      if (!ethereum) {
+        console.log('Metamask is not detected');
+        return;
+      }
+
+      // await window.web3.currentProvider.enable()
+
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+
+      if (accounts && accounts.length > 0) {
+
+        console.log('Found account', accounts[0])
+
+        // Set user account 
+        // setCurrentAccount(accounts[0]);
+
+        // retrieveBalance(ethereum, accounts);
+
+        setIsWalletNotConnected(false)
+
+        return;
+      }
+
+      // Update user connectivity status 
+      setIsWalletNotConnected(true)
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  return (
+    <Container text>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"></link>
+      <link rel="stylesheet" href="../styles/global.scss"></link>
+      <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 2, width: '100%', height: '100%', backgroundColor: '#000000' }}>
+            <span style={{opacity: 0.5}}> 
+            <Image opacity="0.5" width="100%" height="100%" objectFit="cover" position="absolute" src='https://res.cloudinary.com/dxwpajciu/image/upload/v1692035296/imgt_yigsgr.jpg' />
+            </span>
+      </div>
+
+      {/* <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%', backgroundImage: './imgt.jpg'}}> IMAGE </div> */}
+      <Header
+        as='h1'
+        content='Blockchain Medical Record System'
+        inverted
+        style={{
+          fontSize: mobile ? '2em' : '4em',
+          fontWeight: 'normal',
+          marginBottom: 0,
+          marginTop: mobile ? '1.5em' : '3em',
+          fontFamily: 'Georgia',
+          zIndex: 5,
+          position: 'relative'
+        }}
+      />
+      <Header
+        as='h2'
+        content='Ensure that your records are safe and sound'
+        inverted
+        style={{
+          fontSize: mobile ? '1.5em' : '1.7em',
+          fontWeight: 'normal',
+          marginTop: mobile ? '0.5em' : '1.5em',
+          zIndex: 5,
+          position: 'relative'
+        }}
+      />
+      {isWalletNotConnected &&
+        <>
+          <Button style={{zIndex: 5, position: "relative"}} primary size='huge' inverted onClick={() => {
+            // function here... 
+            connectWallet(setIsWalletNotConnected)
+          }}>
+            <a className='item' style={{color: 'white'}}>Connect Wallet</a>
+            {/* <Icon name='right arrow' /> */}
+          </Button>
+
+        </>
+      }
+
+    </Container>
+  )
+}
 
 HomepageHeading.propTypes = {
   mobile: PropTypes.bool,
 }
 
 class DesktopContainer extends Component {
-  state = {}
+  state = {
+    isDoctorConnected: false,
+    isPatientConnected: false,
+  }
+
+  async componentDidMount() {
+    // Get the connected account address
+    const accounts = await web3.eth.getAccounts();
+    const connectedAccount = accounts[0];
+
+    // Check if the connected account is a doctor
+    // const isDoctor = await record.methods.isDoctor(connectedAccount).call();
+
+    // Check if the connected account is a patient
+    // const isPatient = await record.methods.isPatient(connectedAccount).call();
+
+    console.log("connected Account", connectedAccount)
+
+    const isDoctor = await record.methods.getDoctors().call()
+      .then(doctorList => doctorList.includes(connectedAccount));
+
+
+    console.log("All doctors", await record.methods.getDoctors().call())
+
+    // Check if the connected account is a patient
+    const isPatient = await record.methods.getPatients().call()
+      .then(patientList => patientList.includes(connectedAccount));
+
+    console.log("All patients", await record.methods.getPatients().call())
+    console.log("is-patient", isPatient)
+
+    this.setState({
+      isDoctorConnected: isDoctor,
+      isPatientConnected: isPatient,
+    });
+  }
 
   hideFixedMenu = () => this.setState({ fixed: false })
   showFixedMenu = () => this.setState({ fixed: true })
@@ -85,111 +182,289 @@ class DesktopContainer extends Component {
   }
 
   render() {
-    const { children } = this.props
-    const { fixed } = this.state
+    const { children, isWalletNotConnected, setIsWalletNotConnected } = this.props;
+    const { isDoctorConnected, isPatientConnected } = this.state;
 
     return (
       <Media greaterThan='mobile'>
         <Visibility
+          // ... other Visibility props
           once={false}
           onBottomPassed={this.showFixedMenu}
           onBottomPassedReverse={this.hideFixedMenu}
         >
           <Segment
-            inverted
+            // inverted
             textAlign='center'
-            style={{ minHeight: 700, padding: '1em 0em' }}
+            style={{ zIndex: 1, minHeight: 700, zIndex: 5, position: 'relative', padding: '1em 0em',  }}
             vertical
-          >
-            <Menu size='large' inverted>
+          >  
+            <Menu size='large' inverted style={{ zIndex: 5, position: 'relative', background: 'transparent' }}>
               <Link route='/'>
-                  <a className='item'>Home</a>
+                <a className='item'>Home</a>
               </Link>
 
               <Menu.Menu position='right'>
-                <Link route='/dashboard'>
-                    <a className='item'>Dashboard</a>
-                </Link>
+                {isDoctorConnected || isPatientConnected ? (
+                  <>
+                    {/* Common menu items for both doctor and patient */}
 
-                <Link route='/list'>
-                    <a className='item'>Records List</a>
-                </Link>
+                    <Link route='/list'>
+                      <a className='item'>Records List</a>
+                    </Link>
 
-                <Dropdown item text='Doctor'>
-                  <Dropdown.Menu>
-                    <Dropdown.Item>
-                      <Link route='/'>
-                        <a style={{color:'black'}} onClick={this.onClickedDoctor}>View Profile</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/edit-doctor'>
-                        <a style={{color:'black'}}>Edit Profile</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/make-appointment'>
-                        <a style={{color:'black'}}>Make Appointment</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/edit-appointment'>
-                        <a style={{color:'black'}}>Update Appointment</a>
-                      </Link>
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                
-                <Dropdown item text='Patient'>
-                  <Dropdown.Menu>
-                    <Dropdown.Item>
-                      <Link route='/'>
-                        <a style={{color:'black'}} onClick={this.onClickedPatient}>View Profile</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/edit-patient'>
-                        <a style={{color:'black'}}>Edit Profile</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/approve-doctor'>
-                        <a style={{color:'black'}}>Allow Access</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/revoke-doctor'>
-                        <a style={{color:'black'}}>Revoke Access</a>
-                      </Link>
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
+                    {/* Dropdowns specific to doctor */}
+                    {isDoctorConnected && (
+                      <>
+                        <Link route='/dashboard'>
+                          <a className='item'>Dashboard</a>
+                        </Link>
+                        <Dropdown item text='Doctor'>
+                          <Dropdown.Menu>
+                            <Dropdown.Item>
+                              <Link route='/'>
+                                <a style={{ color: 'black' }} onClick={this.onClickedDoctor}>View Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/edit-doctor'>
+                                <a style={{ color: 'black' }}>Edit Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/make-appointment'>
+                                <a style={{ color: 'black' }}>Make Appointment</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/edit-appointment'>
+                                <a style={{ color: 'black' }}>Update Appointment</a>
+                              </Link>
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                        <Dropdown item text='Patient'>
+                          <Dropdown.Menu>
+                            <Dropdown.Item>
+                              <Link route='/'>
+                                <a style={{ color: 'black' }} onClick={this.onClickedPatient}>View Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/edit-patient'>
+                                <a style={{ color: 'black' }}>Edit Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/approve-doctor'>
+                                <a style={{ color: 'black' }}>Allow Access</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/revoke-doctor'>
+                                <a style={{ color: 'black' }}>Revoke Access</a>
+                              </Link>
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                        <Dropdown item text='Register'>
+                          <Dropdown.Menu>
+                            <Dropdown.Item>
+                              <Link route='/register-patient'>
+                                <a style={{ color: 'black' }}>Patient</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/register-doctor'>
+                                <a style={{ color: 'black' }}>Doctor</a>
+                              </Link>
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </>
+                    )}
 
-                <Dropdown item text='Register'>
-                  <Dropdown.Menu>
-                    <Dropdown.Item>
-                      <Link route='/register-patient'>
-                        <a style={{color:'black'}}>Patient</a>
-                      </Link>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <Link route='/register-doctor'>
-                        <a style={{color:'black'}}>Doctor</a>
-                      </Link>
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-
+                    {/* Dropdowns specific to patient */}
+                    {isPatientConnected && (
+                      <>
+                        {/* <Link route='/list'>
+                        <a className='item'>Records List</a>
+                        </Link> */}
+                        <Dropdown item text='Patient'>
+                          <Dropdown.Menu>
+                            <Dropdown.Item>
+                              <Link route='/'>
+                                <a style={{ color: 'black' }} onClick={this.onClickedPatient}>View Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                            <Dropdown.Item>
+                              <Link route='/edit-patient'>
+                                <a style={{ color: 'black' }}>Edit Profile</a>
+                              </Link>
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  // Render wallet connect buttons if no role is determined
+                  <Dropdown item text='Register'>
+                    <Dropdown.Menu>
+                      <Dropdown.Item>
+                        <Link route='/register-patient'>
+                          <a style={{ color: 'black' }}>Patient</a>
+                        </Link>
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                )}
               </Menu.Menu>
-            </Menu>    
-            <HomepageHeading />
+            </Menu>
+            <HomepageHeading
+              // ... other props
+              isWalletNotConnected={isWalletNotConnected}
+              setIsWalletNotConnected={setIsWalletNotConnected}
+            />
           </Segment>
         </Visibility>
 
         {children}
       </Media>
-    )
+    );
   }
+
+
+
+  // render() {
+  //   const { children, isWalletNotConnected, setIsWalletNotConnected } = this.props;
+
+  //   return (
+
+  //     <Media greaterThan='mobile'>
+  //       <Visibility
+  // once={false}
+  // onBottomPassed={this.showFixedMenu}
+  // onBottomPassedReverse={this.hideFixedMenu}
+  //       >
+  //         <Segment
+  //           inverted
+  //           textAlign='center'
+  //           style={{ minHeight: 700, padding: '1em 0em' }}
+  //           vertical
+  //         >
+  //           <Menu size='large' inverted>
+  //             <Link route='/'>
+  //               <a className='item'>Home</a>
+  //             </Link>
+
+  //             <Menu.Menu position='right'>
+  //               {isWalletNotConnected ?
+  // <Dropdown item text='Register'>
+  // <Dropdown.Menu>
+  //   <Dropdown.Item>
+  //     <Link route='/register-patient'>
+  //       <a style={{ color: 'black' }}>Patient</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/register-doctor'>
+  //       <a style={{ color: 'black' }}>Doctor</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  // </Dropdown.Menu>
+  // </Dropdown>: 
+  //                 <>
+  //                   <Link route='/dashboard'>
+  //                     <a className='item'>Dashboard</a>
+  //                   </Link>
+
+  // <Link route='/list'>
+  //   <a className='item'>Records List</a>
+  // </Link>
+
+  //                   <Dropdown item text='Doctor'>
+  // <Dropdown.Menu>
+  //   <Dropdown.Item>
+  //     <Link route='/'>
+  //       <a style={{ color: 'black' }} onClick={this.onClickedDoctor}>View Profile</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/edit-doctor'>
+  //       <a style={{ color: 'black' }}>Edit Profile</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/make-appointment'>
+  //       <a style={{ color: 'black' }}>Make Appointment</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/edit-appointment'>
+  //       <a style={{ color: 'black' }}>Update Appointment</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  // </Dropdown.Menu>
+  //                   </Dropdown>
+
+  // <Dropdown item text='Patient'>
+  // <Dropdown.Menu>
+  //   <Dropdown.Item>
+  //     <Link route='/'>
+  //       <a style={{ color: 'black' }} onClick={this.onClickedPatient}>View Profile</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/edit-patient'>
+  //       <a style={{ color: 'black' }}>Edit Profile</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/approve-doctor'>
+  //       <a style={{ color: 'black' }}>Allow Access</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  //   <Dropdown.Item>
+  //     <Link route='/revoke-doctor'>
+  //       <a style={{ color: 'black' }}>Revoke Access</a>
+  //     </Link>
+  //   </Dropdown.Item>
+  // </Dropdown.Menu>
+  // </Dropdown>
+
+  //                   <Dropdown item text='Register'>
+  //                     <Dropdown.Menu>
+  //                       <Dropdown.Item>
+  //                         <Link route='/register-patient'>
+  //                           <a style={{ color: 'black' }}>Patient</a>
+  //                         </Link>
+  //                       </Dropdown.Item>
+  //                       <Dropdown.Item>
+  //                         <Link route='/register-doctor'>
+  //                           <a style={{ color: 'black' }}>Doctor</a>
+  //                         </Link>
+  //                       </Dropdown.Item>
+  //                     </Dropdown.Menu>
+  //                   </Dropdown>
+  //                 </>
+  //               }
+
+
+  //             </Menu.Menu>
+  //           </Menu>
+  //           <HomepageHeading 
+  //             // mobile
+  // isWalletNotConnected={isWalletNotConnected}
+  // setIsWalletNotConnected={setIsWalletNotConnected}
+  //           />
+  //         </Segment>
+  //       </Visibility>
+
+  //       {children}
+  //     </Media>
+  //   )
+  // }
 }
 
 DesktopContainer.propTypes = {
@@ -197,7 +472,9 @@ DesktopContainer.propTypes = {
 }
 
 class MobileContainer extends Component {
-  state = {}
+  state = {
+    sidebarOpened: false,
+  }
 
   handleSidebarHide = () => this.setState({ sidebarOpened: false })
   handleToggle = () => this.setState({ sidebarOpened: true })
@@ -215,8 +492,8 @@ class MobileContainer extends Component {
   }
 
   render() {
-    const { children } = this.props
-    const { sidebarOpened } = this.state
+    const { children, isWalletNotConnected, setIsWalletNotConnected } = this.props;
+    const { sidebarOpened } = this.state;
 
     return (
       <Media as={Sidebar.Pushable} at='mobile'>
@@ -230,62 +507,62 @@ class MobileContainer extends Component {
             visible={sidebarOpened}
           >
             <Link route='/'>
-                <a className='item'>Home</a>
+              <a className='item'>Home</a>
             </Link>
 
             <Link route='/dashboard'>
-                <a className='item'>Dashboard</a>
+              <a className='item'>Dashboard</a>
             </Link>
-  
+
             <Link route='/list'>
-                <a className='item'>Records List</a>
+              <a className='item'>Records List</a>
             </Link>
-  
+
             <Dropdown item text='Doctor'>
               <Dropdown.Menu>
                 <Dropdown.Item>
                   <Link route='/'>
-                    <a style={{color:'black'}} onClick={this.onClickedDoctor}>View Profile</a>
+                    <a style={{ color: 'black' }} onClick={this.onClickedDoctor}>View Profile</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/edit-doctor'>
-                    <a style={{color:'black'}}>Edit Profile</a>
+                    <a style={{ color: 'black' }}>Edit Profile</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/make-appointment'>
-                    <a style={{color:'black'}}>Make Appointment</a>
+                    <a style={{ color: 'black' }}>Make Appointment</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/edit-appointment'>
-                    <a style={{color:'black'}}>Update Appointment</a>
+                    <a style={{ color: 'black' }}>Update Appointment</a>
                   </Link>
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
-              
+
             <Dropdown item text='Patient'>
               <Dropdown.Menu>
                 <Dropdown.Item>
                   <Link route='/'>
-                    <a style={{color:'black'}} onClick={this.onClickedPatient}>View Profile</a>
+                    <a style={{ color: 'black' }} onClick={this.onClickedPatient}>View Profile</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/edit-patient'>
-                    <a style={{color:'black'}}>Edit Profile</a>
+                    <a style={{ color: 'black' }}>Edit Profile</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/approve-doctor'>
-                    <a style={{color:'black'}}>Allow Access</a>
+                    <a style={{ color: 'black' }}>Allow Access</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/revoke-doctor'>
-                    <a style={{color:'black'}}>Revoke Access</a>
+                    <a style={{ color: 'black' }}>Revoke Access</a>
                   </Link>
                 </Dropdown.Item>
               </Dropdown.Menu>
@@ -295,12 +572,12 @@ class MobileContainer extends Component {
               <Dropdown.Menu>
                 <Dropdown.Item>
                   <Link route='/register-patient'>
-                    <a style={{color:'black'}}>Patient</a>
+                    <a style={{ color: 'black' }}>Patient</a>
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link route='/register-doctor'>
-                    <a style={{color:'black'}}>Doctor</a>
+                    <a style={{ color: 'black' }}>Doctor</a>
                   </Link>
                 </Dropdown.Item>
               </Dropdown.Menu>
@@ -318,10 +595,14 @@ class MobileContainer extends Component {
                 <Menu inverted pointing secondary size='large'>
                   <Menu.Item onClick={this.handleToggle}>
                     <Icon name='sidebar' />
-                  </Menu.Item>                 
+                  </Menu.Item>
                 </Menu>
               </Container>
-              <HomepageHeading mobile />
+              <HomepageHeading
+                mobile
+                isWalletNotConnected={isWalletNotConnected}
+                setIsWalletNotConnected={setIsWalletNotConnected}
+              />
             </Segment>
 
             {children}
@@ -336,12 +617,27 @@ MobileContainer.propTypes = {
   children: PropTypes.node,
 }
 
-const ResponsiveContainer = ({ children }) => (
-  <MediaContextProvider>
-    <DesktopContainer>{children}</DesktopContainer>
-    <MobileContainer>{children}</MobileContainer>
-  </MediaContextProvider>
-)
+const ResponsiveContainer = ({ children }) => {
+  const [isWalletNotConnected, setIsWalletNotConnected] = useState(true);
+
+  return (
+    <MediaContextProvider>
+      <DesktopContainer
+        isWalletNotConnected={isWalletNotConnected}
+        setIsWalletNotConnected={setIsWalletNotConnected}
+      >
+        {children}
+      </DesktopContainer>
+      <MobileContainer
+        isWalletNotConnected={isWalletNotConnected}
+        setIsWalletNotConnected={setIsWalletNotConnected}
+      >
+        {children}
+      </MobileContainer>
+    </MediaContextProvider>
+  );
+};
+
 
 ResponsiveContainer.propTypes = {
   children: PropTypes.node,
@@ -407,8 +703,8 @@ const HomepageLayout = () => (
           Major Issue with Medical Record Systems
         </Header>
         <p style={{ fontSize: '1.33em' }}>
-          Hospital emergency department (ED) found that doctors spent 43% of their time on data entry. 
-          Only 28% of the doctors make direct patient contact. 
+          Hospital emergency department (ED) found that doctors spent 43% of their time on data entry.
+          Only 28% of the doctors make direct patient contact.
         </p>
         <Button as='a' size='large'>
           Read More
@@ -427,8 +723,8 @@ const HomepageLayout = () => (
           Is Blockchain the best step forward for Medical Record Systems?
         </Header>
         <p style={{ fontSize: '1.33em' }}>
-        Blockchain technology has the potential to enable more secure, transparent, and equitable data management.
-        In addition to securely managing data, blockchain has significant advantages in distributing data access, control, and ownership to end users.
+          Blockchain technology has the potential to enable more secure, transparent, and equitable data management.
+          In addition to securely managing data, blockchain has significant advantages in distributing data access, control, and ownership to end users.
         </p>
         <Button as='a' size='large'>
           View Research

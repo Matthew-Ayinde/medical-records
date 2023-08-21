@@ -9,13 +9,22 @@ class RecordDetails extends Component {
 
     static async getInitialProps(props) {
         const addr = props.query.address;
+        console.log("addr", addr)
         const accounts = await web3.eth.getAccounts();
+        console.log("accounts", accounts)
         var records, records2, appointment, profilePic;
 
         try {
-            records = await record.methods.searchPatientDemographic(addr).call({from: accounts[0]});
-            records2 = await record.methods.searchPatientMedical(addr).call({from: accounts[0]});
-            appointment = await record.methods.searchAppointment(addr).call({from: accounts[0]});  
+
+            // records = await record.methods.searchPatientDemographic(addr).call({from: accounts[0]});
+            records = await record.methods.searchPatientDemographic(addr).call({from: addr});
+            console.log("record", records)
+            // records2 = await record.methods.searchPatientMedical(addr).call({from: accounts[0]});
+            records2 = await record.methods.searchPatientMedical(addr).call({from: addr});
+            console.log("record2", records2)
+            // appointment = await record.methods.searchAppointment(addr).call({from: accounts[0]});  
+            appointment = await record.methods.searchAppointment(addr).call({from: addr});  
+            console.log("appointment", appointment)
 
             if(appointment[0].includes("0x00000000000")) appointment[0] = '';
 
@@ -29,6 +38,7 @@ class RecordDetails extends Component {
                 dob: records[4],
                 height: records[5],
                 weight: records[6],
+                address:addr,
                 
                 houseaddr: records2[0],
                 bloodgroup: records2[1],
@@ -49,8 +59,9 @@ class RecordDetails extends Component {
             };
         }
         catch (err) {
-            alert("You don't have permission to view this account");
-            Router.pushRoute('/list');
+            console.log(err)
+            // alert("You don't have permission to view this account");
+            // Router.pushRoute('/list');
         }
     }
 
@@ -122,6 +133,14 @@ class RecordDetails extends Component {
                             <Grid.Column>
                                 <b style={{color:'grey'}}>Address</b>
                                 <div style={{fontWeight:'bold'}}>{this.props.houseaddr}</div>
+                            </Grid.Column>
+                        </Grid.Row>
+                    </Grid>
+                    <Grid columns={1}>
+                        <Grid.Row>
+                            <Grid.Column>
+                                <b style={{color:'grey'}}>Wallet Address</b>
+                                <div style={{fontWeight:'bold'}}>{this.props.address}</div>
                             </Grid.Column>
                         </Grid.Row>
                     </Grid>

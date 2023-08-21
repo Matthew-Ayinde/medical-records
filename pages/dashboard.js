@@ -370,7 +370,7 @@ export default class Dashboard extends PureComponent {
                 </Card.Group>
 
                 <Segment padded>
-                    <h3 style={{textAlign: "center"}}>Number of Patients vs Doctors in 2022</h3>
+                    <h3 style={{textAlign: "center"}}>Number of Patients vs Doctors in 2023</h3>
                     <ResponsiveContainer width="100%" aspect={3}>
                         <AreaChart 
                             width={500}
@@ -404,7 +404,7 @@ export default class Dashboard extends PureComponent {
                 </Segment>
                 
                 <Segment padded>
-                  <h3 style={{textAlign: "center"}}>Number of Appointments in 2022</h3>
+                  <h3 style={{textAlign: "center"}}>Number of Appointments in 2023</h3>
                   <ResponsiveContainer width="100%" aspect={3}>
                       <LineChart
                       width={500}
