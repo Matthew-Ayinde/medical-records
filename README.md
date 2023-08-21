@@ -1,17 +1,18 @@
-# Blockchain Medical Record System
+# Decentralized Medical Management System
 
-## Full Project Demo
-https://www.youtube.com/watch?v=JIswvyxmw3k&t=0s
+
 
 ## Setup
 1. Download Metamask Extension from chrome
-2. Set your wallet to Rinkeby test network
-3. Get ETH from Rinkeby Faucet
+2. Set your wallet to Sepolia test network
+3. Get ETH from Sepolia Faucet
 
 ## How to Run System
 ```
 npm run start
 ```
+
+## Make sure you have node v16 or lower installed as higher versions might cause deprecation issues
 
 ## How to Run Tests
 ```
